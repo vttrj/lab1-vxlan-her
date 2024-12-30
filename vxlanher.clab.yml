@@ -1,0 +1,98 @@
+name: vxlan-her
+
+mgmt:
+  network: custom_mgmt                # management network name
+  ipv4-subnet: 172.16.20.0/24          # ipv4 range
+
+
+topology:
+  kinds:
+    ceos:
+      image: ceos:4.32.0.1F
+    linux:
+      image: wbitt/network-multitool:latest
+  nodes:
+### DC1 ###
+    dc1-spine1a:
+      kind: ceos
+      startup-config: bootstrap-config/dc1-spine1a.cfg
+      mgmt-ipv4: 172.16.20.11
+    dc1-spine1b:
+      kind: ceos
+      startup-config: bootstrap-config/dc1-spine1b.cfg
+      mgmt-ipv4: 172.16.20.12
+    dc1-leaf1:
+      kind: ceos
+      startup-config: bootstrap-config/dc1-leaf1.cfg
+      mgmt-ipv4: 172.16.20.13
+
+    host1:
+      kind: linux
+      mgmt-ipv4: 172.16.20.14
+      exec: 
+        - ip addr add 192.168.10.10/24 dev eth1
+        - ip route add 192.168.20.0/24 via 192.168.10.254
+
+
+### DC2 ###
+    dc2-spine1:
+      kind: ceos
+      startup-config: bootstrap-config/dc2-spine1.cfg
+      mgmt-ipv4: 172.16.20.21
+
+    host2:
+      kind: linux
+      mgmt-ipv4: 172.16.20.22
+      exec: 
+        - ip addr add 192.168.10.11/24 dev eth1
+        - ip route add 192.168.20.0/24 via 192.168.10.254
+
+    host4:
+      kind: linux
+      mgmt-ipv4: 172.16.20.23
+      exec: 
+        - ip addr add 192.168.20.10/24 dev eth1
+        - ip route add 192.168.10.0/24 via 192.168.20.254
+
+### DC3 ###
+    dc3-spine1:
+      kind: ceos
+      startup-config: bootstrap-config/dc3-spine1.cfg
+      mgmt-ipv4: 172.16.20.31
+
+
+    host3:
+      kind: linux
+      mgmt-ipv4: 172.16.20.32
+      exec: 
+        - ip addr add 192.168.10.12/24 dev eth1
+        - ip route add 192.168.20.0/24 via 192.168.10.254
+
+    host5:
+      kind: linux
+      mgmt-ipv4: 172.16.20.33
+      exec: 
+        - ip addr add 192.168.20.11/24 dev eth1
+        - ip route add 192.168.10.0/24 via 192.168.20.254
+
+
+
+  links:
+    ### DC1 ###
+    - endpoints: ["dc1-spine1a:eth3", "dc1-spine1b:eth3"]
+    - endpoints: ["dc1-spine1a:eth4", "dc1-spine1b:eth4"]
+    - endpoints: ["dc1-spine1a:eth8", "dc1-leaf1:eth1"]
+    - endpoints: ["dc1-spine1b:eth8", "dc1-leaf1:eth2"]
+    - endpoints: ["dc1-spine1a:eth1", "dc2-spine1:eth1"]
+    - endpoints: ["dc1-spine1a:eth2", "dc3-spine1:eth1"]
+    - endpoints: ["dc1-spine1b:eth1", "dc2-spine1:eth2"]
+    - endpoints: ["dc1-spine1b:eth2", "dc3-spine1:eth2"]
+    - endpoints: ["host1:eth1", "dc1-leaf1:eth5"]
+
+    ### DC2 ###
+    - endpoints: ["host2:eth1", "dc2-spine1:eth9"]
+    - endpoints: ["host4:eth1", "dc2-spine1:eth10"]
+
+    ### DC3 ###
+    - endpoints: ["host3:eth1", "dc3-spine1:eth9"]
+    - endpoints: ["host5:eth1", "dc3-spine1:eth10"]
